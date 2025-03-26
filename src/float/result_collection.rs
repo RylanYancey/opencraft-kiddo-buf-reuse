@@ -172,3 +172,118 @@ impl<'v, A: Axis, T: Content> ResultCollection<A, T> for SortedVecRef<'v, A, T> 
         unimplemented!()
     }
 }
+
+pub struct ArrayRef<'v, A: Axis, T: Content, const N: usize> {
+    pub array: &'v mut [NearestNeighbour<A, T>; N],
+    pub len: usize,
+}
+
+impl<'v, A: Axis, T: Content, const N: usize> ResultCollection<A, T> for ArrayRef<'v, A, T, N> {
+    fn new_with_capacity(_capacity: usize) -> Self {
+        unimplemented!()
+    }
+
+    fn add(&mut self, entry: NearestNeighbour<A, T>) {
+        if self.len < N {
+            self.array[self.len] = entry;
+            self.len += 1;
+        }
+    }
+
+    fn max_dist(&self) -> A {
+        A::infinity()
+    }
+
+    fn into_vec(self) -> Vec<NearestNeighbour<A, T>> {
+        unimplemented!()
+    }
+
+    fn into_sorted_vec(self) -> Vec<NearestNeighbour<A, T>> {
+        unimplemented!()
+    }
+}
+
+pub struct SortedArrayRef<'v, A: Axis, T: Content, const N: usize> {
+    pub array: &'v mut [NearestNeighbour<A, T>; N],
+    pub len: usize,
+}
+
+impl<'v, A: Axis, T: Content, const N: usize> ResultCollection<A, T> for SortedArrayRef<'v, A, T, N> {
+    fn new_with_capacity(_capacity: usize) -> Self {
+        unimplemented!()
+    }
+
+    fn add(&mut self, entry: NearestNeighbour<A, T>) {
+        let len = self.len;
+        if len < N {
+            for i in 0..self.len {
+                if entry <= self.array[i] {
+                    for k in (i+1)..N {
+                        self.array[k] = self.array[k-1];
+                    }
+
+                    self.array[i] = entry;
+                    if self.len < N { self.len += 1 }
+                    break;
+                }
+            }
+        } else if entry < self.array[N-1] {
+            self.array[N-1] = entry;
+        }
+    }
+
+    fn max_dist(&self) -> A {
+        if self.len < N {
+            A::infinity()
+        } else {
+            self.array[N-1].distance
+        }
+    }
+
+    fn into_vec(self) -> Vec<NearestNeighbour<A, T>> {
+        unimplemented!()
+    }
+
+    fn into_sorted_vec(self) -> Vec<NearestNeighbour<A, T>> {
+        unimplemented!()
+    }
+}
+
+pub struct BinaryHeapArray<'v, A: Axis, T: Content, const N: usize> {
+    pub array: &'v mut [NearestNeighbour<A, T>; N],
+    pub len: usize,
+}
+
+impl<'v, A: Axis, T: Content, const N: usize> ResultCollection<A, T> for BinaryHeapArray<'v, A, T, N> {
+    fn new_with_capacity(_capacity: usize) -> Self {
+        unimplemented!()
+    }
+
+    fn add(&mut self, entry: NearestNeighbour<A, T>) {
+        if self.len < N {
+            self.array[self.len] = entry;
+            self.len += 1;
+        } else {
+            let max_heap_value = &mut self.array[0];
+            if entry < *max_heap_value {
+                *max_heap_value = entry;
+            }
+        }
+    }
+
+    fn max_dist(&self) -> A {
+        if self.len < N {
+            A::infinity()
+        } else {
+            self.array[0].distance
+        }
+    }
+
+    fn into_vec(self) -> Vec<NearestNeighbour<A, T>> {
+        unimplemented!()
+    }
+
+    fn into_sorted_vec(self) -> Vec<NearestNeighbour<A, T>> {
+        unimplemented!()
+    }
+}
