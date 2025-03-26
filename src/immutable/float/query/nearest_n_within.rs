@@ -5,7 +5,7 @@ use std::num::NonZero;
 use std::ops::Rem;
 
 use crate::float::kdtree::Axis;
-use crate::float::result_collection::ResultCollection;
+use crate::float::result_collection::{ResultCollection, SortedVecRef, BinaryHeapRef};
 use crate::float_leaf_slice::leaf_slice::{LeafSliceFloat, LeafSliceFloatChunk};
 use crate::immutable::float::kdtree::ImmutableKdTree;
 use crate::nearest_neighbour::NearestNeighbour;

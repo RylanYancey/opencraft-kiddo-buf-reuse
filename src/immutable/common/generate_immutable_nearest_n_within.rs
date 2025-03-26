@@ -13,19 +13,49 @@ macro_rules! generate_immutable_nearest_n_within {
 
                 if sorted && max_items < usize::MAX {
                     if max_items <= MAX_VEC_RESULT_SIZE {
-                        self.nearest_n_within_stub::<D, SortedVec<NearestNeighbour<A, T>>>(query, dist, max_items, sorted)
+                        let mut items = SortedVec::new_with_capacity(max_items);
+                        self.nearest_n_within_stub::<D, SortedVec<NearestNeighbour<A, T>>>(query, dist, &mut items);
+                        items.into_sorted_vec()
                     } else {
-                        self.nearest_n_within_stub::<D, BinaryHeap<NearestNeighbour<A, T>>>(query, dist, max_items, sorted)
+                        let mut items = BinaryHeap::new_with_capacity(max_items);
+                        self.nearest_n_within_stub::<D, BinaryHeap<NearestNeighbour<A, T>>>(query, dist, &mut items);
+                        items.into_sorted_vec()
                     }
                 } else {
-                    self.nearest_n_within_stub::<D, Vec<NearestNeighbour<A,T>>>(query, dist, 0, sorted)
+                    let mut items = Vec::new_with_capacity(0);
+                    self.nearest_n_within_stub::<D, Vec<NearestNeighbour<A,T>>>(query, dist, &mut items);
+                    if sorted { items = items.into_sorted_vec() }
+                    items
+                }
+            }
+
+            /// Helper function added by the opencraft team for re-using an existing buffer.
+            #[inline]
+            pub fn collect_nearest_n_within<D>(&self, query: &[A; K], dist: A, max_items: NonZero<usize>, sorted: bool, buf: &mut Vec<NearestNeighbour<A, T>>) 
+            where
+                D: DistanceMetric<A, K>,
+            {
+                let max_items: usize = max_items.into();
+
+                if sorted && max_items < usize::MAX {
+                    if max_items <= MAX_VEC_RESULT_SIZE {
+                        let mut items = SortedVecRef { buf };
+                        self.nearest_n_within_stub::<D, _>(query, dist, &mut items);
+                        items.buf.sort_unstable();
+                    } else {
+                        let mut items = BinaryHeapRef { buf };
+                        self.nearest_n_within_stub::<D, _>(query, dist, &mut items);
+                        items.buf.sort_unstable();
+                    }
+                } else {
+                    self.nearest_n_within_stub::<D, Vec<NearestNeighbour<A,T>>>(query, dist, buf);
+                    if sorted { buf.sort_unstable() }
                 }
             }
 
             fn nearest_n_within_stub<D: DistanceMetric<A, K>, H: ResultCollection<A, T>>(
-                &self, query: &[A; K], dist: A, res_capacity: usize, sorted: bool
-            ) -> Vec<NearestNeighbour<A, T>> {
-                let mut matching_items = H::new_with_capacity(res_capacity);
+                &self, query: &[A; K], dist: A, matching_items: &mut H
+            ) {
                 let mut off = [A::zero(); K];
 
                 #[cfg(not(feature = "modified_van_emde_boas"))]
@@ -34,7 +64,7 @@ macro_rules! generate_immutable_nearest_n_within {
                     dist,
                     1,
                     0,
-                    &mut matching_items,
+                    matching_items,
                     &mut off,
                     A::zero(),
                     0,
@@ -47,19 +77,13 @@ macro_rules! generate_immutable_nearest_n_within {
                     dist,
                     0,
                     0,
-                    &mut matching_items,
+                    matching_items,
                     &mut off,
                     A::zero(),
                     0,
                     0,
                     0,
                 );
-
-                if sorted {
-                    matching_items.into_sorted_vec()
-                } else {
-                    matching_items.into_vec()
-                }
             }
 
             #[allow(clippy::too_many_arguments)]

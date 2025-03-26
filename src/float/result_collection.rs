@@ -96,3 +96,79 @@ impl<A: Axis, T: Content> ResultCollection<A, T> for SortedVec<NearestNeighbour<
         self.into_vec()
     }
 }
+
+pub struct BinaryHeapRef<'v, A: Axis, T: Content> {
+    pub buf: &'v mut Vec<NearestNeighbour<A, T>>,
+}
+
+impl<'v, A: Axis, T: Content> ResultCollection<A, T> for BinaryHeapRef<'v, A, T> {
+    fn new_with_capacity(_capacity: usize) -> Self {
+        unimplemented!()
+    }
+
+    fn add(&mut self, entry: NearestNeighbour<A, T>) {
+        let k = self.buf.capacity();
+        if self.buf.len() < k {
+            self.buf.push(entry);
+        } else {
+            let max_heap_value = &mut self.buf[0];
+            if entry < *max_heap_value {
+                *max_heap_value = entry;
+            }
+        }
+    }
+
+    fn max_dist(&self) -> A {
+        if self.buf.len() < self.buf.capacity() {
+            A::infinity()
+        } else {
+            self.buf.get(0).map_or(A::infinity(), |n| n.distance)
+        }
+    }
+
+    fn into_vec(self) -> Vec<NearestNeighbour<A, T>> {
+        unimplemented!()
+    }
+
+    fn into_sorted_vec(self) -> Vec<NearestNeighbour<A, T>> {
+        unimplemented!()
+    }
+}
+
+pub struct SortedVecRef<'v, A: Axis, T: Content> {
+    pub buf: &'v mut Vec<NearestNeighbour<A, T>>,
+}
+
+impl<'v, A: Axis, T: Content> ResultCollection<A, T> for SortedVecRef<'v, A, T> {
+    fn new_with_capacity(_capacity: usize) -> Self {
+        unimplemented!()
+    }
+
+    fn add(&mut self, entry: NearestNeighbour<A, T>) {
+        let len = self.buf.len();
+        if len < self.buf.capacity() {
+            match self.buf.binary_search (&entry) {
+                Ok (insert_at) | Err (insert_at) => self.buf.insert(insert_at, entry),
+            };
+        } else if entry < *self.buf.last().unwrap() {
+            self.buf.pop();
+            self.buf.push(entry);
+        }
+    }
+
+    fn max_dist(&self) -> A {
+        if self.buf.len() < self.buf.capacity() {
+            A::infinity()
+        } else {
+            self.buf.last().map_or(A::infinity(), |n| n.distance)
+        }
+    }
+
+    fn into_vec(self) -> Vec<NearestNeighbour<A, T>> {
+        unimplemented!()
+    }
+
+    fn into_sorted_vec(self) -> Vec<NearestNeighbour<A, T>> {
+        unimplemented!()
+    }
+}

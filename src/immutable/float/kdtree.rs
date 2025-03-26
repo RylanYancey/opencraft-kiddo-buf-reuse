@@ -250,6 +250,7 @@ where
     T: Content,
     usize: Cast<T>,
 {
+
     /// Creates an `ImmutableKdTree`, balanced and optimized, populated
     /// with items from `source`.
     ///
@@ -268,6 +269,24 @@ where
     /// ```
     #[inline]
     pub fn new_from_slice(source: &[[A; K]]) -> Self
+    where
+        usize: Cast<T>,
+    {
+        let mut result = Self {
+            stems: avec![],
+            leaf_points: array_init(|_| Vec::new()),
+            leaf_items: Vec::new(),
+            leaf_extents: Vec::new(),
+            max_stem_level: 0,
+        };
+
+        result.rebuild_from_slice(source);
+        result
+    }
+
+    /// Helper function added by opencraft team that re-uses the existing buffer.
+    #[inline]
+    pub fn rebuild_from_slice(&mut self, source: &[[A; K]])
     where
         usize: Cast<T>,
     {
@@ -296,10 +315,23 @@ where
         #[cfg(feature = "modified_van_emde_boas")]
         let stem_node_count = stem_node_count * 5;
 
-        let mut stems = avec![A::infinity(); stem_node_count];
-        let mut leaf_points: [Vec<A>; K] = array_init(|_| Vec::with_capacity(item_count));
-        let mut leaf_items: Vec<T> = Vec::with_capacity(item_count);
-        let mut leaf_extents: Vec<(u32, u32)> = Vec::with_capacity(item_count.div_ceil(B));
+        // Clear old data
+        self.stems.clear();
+        self.leaf_points.iter_mut().for_each(|vec| vec.clear());
+        self.leaf_items.clear();
+        self.leaf_extents.clear();
+
+        // reserve enough space in advance for new data.
+        self.stems.resize(stem_node_count, A::infinity());
+        self.leaf_points.iter_mut().for_each(|vec| vec.reserve(item_count));
+        self.leaf_items.reserve(item_count);
+        self.leaf_extents.reserve(item_count);
+        self.max_stem_level = max_stem_level;
+
+        let mut stems = &mut self.stems;
+        let mut leaf_points = &mut self.leaf_points;
+        let mut leaf_items = &mut self.leaf_items;
+        let mut leaf_extents = &mut self.leaf_extents;
 
         let mut sort_index = Vec::from_iter(0..item_count);
 
@@ -355,14 +387,6 @@ where
                 }
                 stems.truncate(stem_idx + 1);
             }
-        }
-
-        Self {
-            stems,
-            leaf_points,
-            leaf_items,
-            leaf_extents,
-            max_stem_level,
         }
     }
 
