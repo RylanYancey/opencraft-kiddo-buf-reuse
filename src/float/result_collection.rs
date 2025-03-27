@@ -99,6 +99,7 @@ impl<A: Axis, T: Content> ResultCollection<A, T> for SortedVec<NearestNeighbour<
 
 pub struct BinaryHeapRef<'v, A: Axis, T: Content> {
     pub buf: &'v mut Vec<NearestNeighbour<A, T>>,
+    pub cap: usize,
 }
 
 impl<'v, A: Axis, T: Content> ResultCollection<A, T> for BinaryHeapRef<'v, A, T> {
@@ -107,8 +108,7 @@ impl<'v, A: Axis, T: Content> ResultCollection<A, T> for BinaryHeapRef<'v, A, T>
     }
 
     fn add(&mut self, entry: NearestNeighbour<A, T>) {
-        let k = self.buf.capacity();
-        if self.buf.len() < k {
+        if self.buf.len() < self.cap {
             self.buf.push(entry);
         } else {
             let max_heap_value = &mut self.buf[0];
@@ -119,7 +119,7 @@ impl<'v, A: Axis, T: Content> ResultCollection<A, T> for BinaryHeapRef<'v, A, T>
     }
 
     fn max_dist(&self) -> A {
-        if self.buf.len() < self.buf.capacity() {
+        if self.buf.len() < self.cap {
             A::infinity()
         } else {
             self.buf.get(0).map_or(A::infinity(), |n| n.distance)
@@ -137,6 +137,7 @@ impl<'v, A: Axis, T: Content> ResultCollection<A, T> for BinaryHeapRef<'v, A, T>
 
 pub struct SortedVecRef<'v, A: Axis, T: Content> {
     pub buf: &'v mut Vec<NearestNeighbour<A, T>>,
+    pub cap: usize,
 }
 
 impl<'v, A: Axis, T: Content> ResultCollection<A, T> for SortedVecRef<'v, A, T> {
@@ -146,7 +147,7 @@ impl<'v, A: Axis, T: Content> ResultCollection<A, T> for SortedVecRef<'v, A, T> 
 
     fn add(&mut self, entry: NearestNeighbour<A, T>) {
         let len = self.buf.len();
-        if len < self.buf.capacity() {
+        if len < self.cap {
             match self.buf.binary_search (&entry) {
                 Ok (insert_at) | Err (insert_at) => self.buf.insert(insert_at, entry),
             };
@@ -157,7 +158,7 @@ impl<'v, A: Axis, T: Content> ResultCollection<A, T> for SortedVecRef<'v, A, T> 
     }
 
     fn max_dist(&self) -> A {
-        if self.buf.len() < self.buf.capacity() {
+        if self.buf.len() < self.cap {
             A::infinity()
         } else {
             self.buf.last().map_or(A::infinity(), |n| n.distance)

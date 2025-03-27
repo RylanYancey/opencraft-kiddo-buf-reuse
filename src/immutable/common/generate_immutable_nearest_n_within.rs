@@ -15,12 +15,12 @@ macro_rules! generate_immutable_nearest_n_within {
                     let mut buf = Vec::new_with_capacity(max_items);
                     if sorted {
                         if max_items <= MAX_VEC_RESULT_SIZE {
-                            let mut items = SortedVecRef { buf: &mut buf };
+                            let mut items = SortedVecRef { buf: &mut buf, cap: max_items };
                             self.nearest_n_within_stub::<D, _>(query, dist, &mut items);
                             items.buf.sort_unstable();
                             buf
                         } else {
-                            let mut items = BinaryHeapRef { buf: &mut buf };
+                            let mut items = BinaryHeapRef { buf: &mut buf, cap: max_items };
                             self.nearest_n_within_stub::<D, _>(query, dist, &mut items);
                             items.buf.sort_unstable();
                             buf
@@ -44,14 +44,16 @@ macro_rules! generate_immutable_nearest_n_within {
                 D: DistanceMetric<A, K>,
             {
                 let max_items: usize = max_items.into();
+                buf.clear();
 
                 if sorted && max_items < usize::MAX {
+                    buf.reserve(max_items);
                     if max_items <= MAX_VEC_RESULT_SIZE {
-                        let mut items = SortedVecRef { buf };
+                        let mut items = SortedVecRef { buf, cap: max_items };
                         self.nearest_n_within_stub::<D, _>(query, dist, &mut items);
                         items.buf.sort_unstable();
                     } else {
-                        let mut items = BinaryHeapRef { buf };
+                        let mut items = BinaryHeapRef { buf, cap: max_items };
                         self.nearest_n_within_stub::<D, _>(query, dist, &mut items);
                         items.buf.sort_unstable();
                     }
